@@ -1,0 +1,15 @@
+{
+  "name": "proxy-netmail",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter @proxy-netmail/api dev",
+    "dev:web": "pnpm --filter @proxy-netmail/web dev",
+    "dev": "pnpm run --parallel dev:api dev:web",
+    "build": "pnpm run --filter './apps/*' build",
+    "db:migrate": "pnpm --filter @proxy-netmail/api db:migrate"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

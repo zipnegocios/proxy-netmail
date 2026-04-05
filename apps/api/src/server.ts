@@ -1,0 +1,40 @@
+import Fastify from 'fastify';
+import cors from '@fastify/cors';
+import { config } from './config';
+import databasePlugin from './plugins/database';
+import authPlugin from './plugins/auth';
+import accountRoutes from './routes/accounts';
+import systemRoutes from './routes/system';
+
+const server = Fastify({
+  logger: {
+    level: config.nodeEnv === 'development' ? 'info' : 'warn',
+  },
+});
+
+// Plugins
+server.register(cors, { origin: config.corsOrigin });
+server.register(databasePlugin);
+server.register(authPlugin);
+
+// Routes
+server.register(accountRoutes, { prefix: '/api/accounts' });
+server.register(systemRoutes, { prefix: '/api/system' });
+
+// Health check (no auth)
+server.get('/api/ping', async () => ({
+  status: 'ok',
+  timestamp: new Date().toISOString(),
+}));
+
+const start = async () => {
+  try {
+    await server.listen({ port: config.port, host: '0.0.0.0' });
+    console.log(`proxy-netmail API running on port ${config.port}`);
+  } catch (err) {
+    server.log.error(err);
+    process.exit(1);
+  }
+};
+
+start();
