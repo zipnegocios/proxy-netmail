@@ -5,6 +5,9 @@ import databasePlugin from './plugins/database';
 import authPlugin from './plugins/auth';
 import accountRoutes from './routes/accounts';
 import systemRoutes from './routes/system';
+import setupRoutes from './routes/setup';
+import activityRoutes from './routes/activity';
+import sslRoutes from './routes/ssl';
 
 const server = Fastify({
   logger: {
@@ -20,6 +23,9 @@ server.register(authPlugin);
 // Routes
 server.register(accountRoutes, { prefix: '/api/accounts' });
 server.register(systemRoutes, { prefix: '/api/system' });
+server.register(setupRoutes, { prefix: '/api/accounts' });
+server.register(activityRoutes, { prefix: '/api/activity' });
+server.register(sslRoutes, { prefix: '/api/ssl' });
 
 // Health check (no auth)
 server.get('/api/ping', async () => ({

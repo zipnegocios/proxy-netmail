@@ -140,6 +140,16 @@ export default function AccountsPage() {
                   <Button variant="outline" size="sm" asChild>
                     <Link href={`/accounts/${account.id}`}>Details</Link>
                   </Button>
+                  {account.proxy_status !== 'running' && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/accounts/${account.id}`}>Setup</Link>
+                    </Button>
+                  )}
+                  {account.proxy_status === 'running' && (
+                    <Badge className="bg-green-100 text-green-800" variant="secondary">
+                      Running
+                    </Badge>
+                  )}
                   <Button
                     variant="destructive"
                     size="sm"

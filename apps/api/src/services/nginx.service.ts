@@ -1,4 +1,4 @@
-import { writeFile, unlink, mkdir } from 'fs/promises';
+import { writeFile, unlink, mkdir, copyFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { exec } from 'child_process';
@@ -81,6 +81,56 @@ server {
 `;
 }
 
+export function generateNoSslConfig(account: Account): string {
+  const safe = safeDomain(account.target_domain);
+  const timestamp = new Date().toISOString();
+
+  return `# proxy-netmail: ${account.label} (${account.target_domain})
+# Generated: ${timestamp}
+# DO NOT EDIT MANUALLY — managed by proxy-netmail
+# NOTE: Initial config without SSL (plain ports)
+
+# IMAP Proxy
+upstream imap_${safe} {
+    server ${account.imap_upstream}:${account.imap_port};
+}
+
+server {
+    listen 143;
+    proxy_pass imap_${safe};
+
+    proxy_timeout       300s;
+    proxy_connect_timeout 10s;
+}
+
+# SMTP Proxy
+upstream smtp_${safe} {
+    server ${account.smtp_upstream}:${account.smtp_port};
+}
+
+server {
+    listen 587;
+    proxy_pass smtp_${safe};
+
+    proxy_timeout       300s;
+    proxy_connect_timeout 10s;
+}
+
+# POP3 Proxy
+upstream pop3_${safe} {
+    server ${account.pop_upstream}:${account.pop_port};
+}
+
+server {
+    listen 110;
+    proxy_pass pop3_${safe};
+
+    proxy_timeout       300s;
+    proxy_connect_timeout 10s;
+}
+`;
+}
+
 export async function writeConfig(account: Account, configContent: string): Promise<string> {
   const filename = `proxy-netmail-${safeDomain(account.target_domain)}.conf`;
   const filePath = join(config.nginxSitesPath, filename);
@@ -96,6 +146,13 @@ export async function writeConfig(account: Account, configContent: string): Prom
 export async function removeConfig(confPath: string): Promise<void> {
   if (existsSync(confPath)) {
     await unlink(confPath);
+  }
+}
+
+export async function backupConfig(confPath: string): Promise<void> {
+  if (existsSync(confPath)) {
+    const backupPath = `${confPath}.bak`;
+    await copyFile(confPath, backupPath);
   }
 }
 

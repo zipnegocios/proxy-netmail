@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/api';
+import ActivityFeed from '@/components/activity/activity-feed';
 import type { Account } from '@proxy-netmail/shared';
 
 export default function OverviewPage() {
@@ -122,6 +123,16 @@ export default function OverviewPage() {
               </table>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivityFeed />
         </CardContent>
       </Card>
     </div>

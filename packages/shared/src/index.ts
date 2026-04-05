@@ -19,4 +19,5 @@ export type {
   SslCertificate,
   DiagnosticReport,
   DiagnosticCheck,
+  SetupEvent,
 } from './types/system';

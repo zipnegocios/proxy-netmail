@@ -58,3 +58,11 @@ export interface DiagnosticCheck {
   status: 'ok' | 'warning' | 'error';
   detail: string;
 }
+
+export interface SetupEvent {
+  step: number;
+  stepName: string;
+  status: 'running' | 'success' | 'error' | 'done';
+  message: string;
+  metadata?: Record<string, unknown>;
+}
