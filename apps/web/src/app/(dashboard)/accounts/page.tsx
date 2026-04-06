@@ -1,8 +1,5 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -141,11 +138,11 @@ export default function AccountsPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" asChild>
-                    <Link href={`/accounts/${account.id}`}>Details</Link>
+                    <Link href={`/accounts/detail?id=${account.id}`}>Details</Link>
                   </Button>
                   {account.proxy_status !== 'running' && (
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/accounts/${account.id}`}>Setup</Link>
+                      <Link href={`/accounts/detail?id=${account.id}`}>Setup</Link>
                     </Button>
                   )}
                   {account.proxy_status === 'running' && (

@@ -1,9 +1,6 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,21 +13,43 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Simple auth check
     if (email === 'admin@proxy-netmail.com' && password === 'Judini#$2026') {
-      localStorage.setItem('proxy-netmail-auth', 'true');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('proxy-netmail-auth', 'true');
+      }
       router.push('/');
     } else {
       setError('Invalid credentials');
       setLoading(false);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">proxy-netmail</CardTitle>
+            <CardDescription>Mail Proxy & Network Management</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-48"></div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

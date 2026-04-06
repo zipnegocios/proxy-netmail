@@ -14,25 +14,23 @@ const navItems = [
   { href: '/settings', label: 'Settings' },
 ];
 
-// Marcar esta página como dinámica - no prerender
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [isClient, setIsClient] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
-    // Check auth
-    if (typeof window !== 'undefined') {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
       const auth = localStorage.getItem('proxy-netmail-auth');
       if (auth !== 'true') {
         router.replace('/login');
       }
     }
-  }, [router]);
+  }, [mounted, router]);
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -41,8 +39,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   };
 
-  // Prevent hydration issues
-  if (!isClient) {
+  if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -52,7 +49,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-gray-900 text-white flex flex-col">
         <div className="p-6 border-b border-gray-800">
           <h1 className="text-xl font-bold">proxy-netmail</h1>
@@ -60,10 +56,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
-            const isActive =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname?.startsWith(item.href) ?? false;
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
@@ -89,8 +82,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Button>
         </div>
       </aside>
-
-      {/* Main content */}
       <main className="flex-1 bg-gray-50">
         <div className="p-8">{children}</div>
       </main>

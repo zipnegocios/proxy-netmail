@@ -1,9 +1,7 @@
 'use client';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { Account, SslCertificate, HealthCheck, HealthSummary } from '@proxy-netmail/shared';
 import { Button } from '@/components/ui/button';
@@ -14,11 +12,10 @@ import SetupProgress from '@/components/setup/setup-progress';
 import ActivityFeed from '@/components/activity/activity-feed';
 import HealthStatusBadge from '@/components/health/health-status-badge';
 
-export default function AccountDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+function AccountDetailContent() {
+  const searchParams = useSearchParams();
+  const accountId = parseInt(searchParams.get('id') || '0', 10);
+  
   const [account, setAccount] = useState<Account | null>(null);
   const [ssl, setSsl] = useState<SslCertificate | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,9 +30,11 @@ export default function AccountDetailPage({
   const [healthLoading, setHealthLoading] = useState(false);
   const [runningCheck, setRunningCheck] = useState(false);
 
-  const accountId = parseInt(params.id, 10);
-
   const fetchData = async () => {
+    if (!accountId) {
+      setLoading(false);
+      return;
+    }
     try {
       const [acc, cert] = await Promise.all([
         api<Account>(`/api/accounts/${accountId}`),
@@ -58,7 +57,7 @@ export default function AccountDetailPage({
   }, [accountId]);
 
   useEffect(() => {
-    if (activeTab !== 'health') return;
+    if (activeTab !== 'health' || !accountId) return;
     setHealthLoading(true);
     Promise.all([
       api<HealthCheck[]>(`/api/health/${accountId}`),
@@ -77,7 +76,6 @@ export default function AccountDetailPage({
   const handleSetupComplete = async () => {
     setSetupRunning(false);
     setSetupDone(true);
-    // Refetch account to update status
     await fetchData();
   };
 
@@ -118,7 +116,7 @@ export default function AccountDetailPage({
     return <div className="p-8 text-center">Loading...</div>;
   }
 
-  if (!account) {
+  if (!accountId || !account) {
     return (
       <div className="p-8">
         <div className="text-center">
@@ -506,5 +504,13 @@ export default function AccountDetailPage({
         </Card>
       )}
     </div>
+  );
+}
+
+export default function AccountDetailPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center">Loading...</div>}>
+      <AccountDetailContent />
+    </Suspense>
   );
 }

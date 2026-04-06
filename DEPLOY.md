@@ -1,8 +1,48 @@
-# Guía de Despliegue - Hostinger VPS
+# Guía de Despliegue - Hostinger Business Plan
 
-## Variables de Entorno Requeridas
+> **IMPORTANTE**: El plan Business de Hostinger es hosting compartido (shared hosting), NO VPS. Esto significa:
+> - No puedes correr procesos Node.js permanentemente (PM2 no funciona)
+> - No tienes acceso a NGINX
+> - No puedes usar puertos personalizados
+> 
+> **Solución**: El frontend se sirve como archivos estáticos desde el hosting. El backend (API) debe desplegarse en un servicio separado como Railway, Render, o Vercel.
 
-### `apps/api/.env`
+## Resumen de la Arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Frontend (Next.js estático)                                │
+│  → Hostinger Business Plan                                  │
+│  → https://olivedrab-gnu-416802.hostingersite.com         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ API calls
+┌─────────────────────────────────────────────────────────────┐
+│  Backend (Fastify API)                                      │
+│  → Railway / Render / Vercel / Otro hosting Node.js        │
+│  → https://proxy-netmail-api.railway.app (ejemplo)         │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼ MySQL queries
+┌─────────────────────────────────────────────────────────────┐
+│  Database                                                   │
+│  → Hostinger MySQL (srv1782.hstgr.io)                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Paso 1: Configurar Variables de Entorno
+
+### `apps/web/.env.local`
+```env
+# URL del backend (cambiar después de desplegar la API)
+NEXT_PUBLIC_API_URL=https://tu-api-en-railway.app/api
+
+# Credenciales de admin (autenticación cliente)
+NEXT_PUBLIC_ADMIN_EMAIL=admin@proxy-netmail.com
+NEXT_PUBLIC_ADMIN_PASSWORD=Judini#$2026
+```
+
+### `apps/api/.env` (para desplegar backend en Railway/Render)
 ```env
 DATABASE_HOST=srv1782.hstgr.io
 DATABASE_PORT=3306
@@ -11,230 +51,204 @@ DATABASE_USER=u669953139_netmailUSER
 DATABASE_PASSWORD="u669953139_netmail#$PWD"
 API_PORT=3001
 NODE_ENV=production
-JWT_SECRET=proxy-netmail-dev-secret-change-in-production
-NGINX_SITES_PATH=/etc/nginx/conf.d
 CORS_ORIGIN=https://olivedrab-gnu-416802.hostingersite.com
 ```
 
-### `apps/web/.env.local`
-```env
-NEXT_PUBLIC_API_URL=https://olivedrab-gnu-416802.hostingersite.com/api
-NEXTAUTH_URL=https://olivedrab-gnu-416802.hostingersite.com
-NEXTAUTH_SECRET=proxy-netmail-dev-secret-change-in-production
-ADMIN_EMAIL=admin@proxy-netmail.com
-ADMIN_PASSWORD=Judini#$2026
-```
-
-## Configuración NGINX
-
-Crear archivo `/etc/nginx/conf.d/proxy-netmail.conf`:
-
-```nginx
-server {
-    listen 80;
-    server_name olivedrab-gnu-416802.hostingersite.com;
-    
-    # Redirigir HTTP a HTTPS (si tienes SSL configurado)
-    # return 301 https://$server_name$request_uri;
-    
-    # Frontend Next.js
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-    }
-    
-    # API Fastify
-    location /api/ {
-        proxy_pass http://localhost:3001/api/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-
-# Configuración SSL (Hostinger generalmente lo configura automáticamente)
-# Si necesitas configurarlo manualmente con Let's Encrypt:
-# server {
-#     listen 443 ssl http2;
-#     server_name olivedrab-gnu-416802.hostingersite.com;
-#     
-#     ssl_certificate /etc/letsencrypt/live/tu-dominio/fullchain.pem;
-#     ssl_certificate_key /etc/letsencrypt/live/tu-dominio/privkey.pem;
-#     
-#     # ... mismas location blocks de arriba
-# }
-```
-
-Verificar y recargar NGINX:
-```bash
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-## Opción 1: Iniciar con PM2 (Recomendado)
+## Paso 2: Build del Frontend
 
 ```bash
-# Instalar PM2 globalmente si no está instalado
-npm install -g pm2
+# En tu máquina local (o CI/CD)
+cd apps/web
 
-# En el directorio del proyecto
-cd /home/u669953139/domains/olivedrab-gnu-416802.hostingersite.com/public_html
+# Crear archivo .env.local con las variables de arriba
+echo "NEXT_PUBLIC_API_URL=https://tu-api-en-railway.app/api" > .env.local
+echo "NEXT_PUBLIC_ADMIN_EMAIL=admin@proxy-netmail.com" >> .env.local
+echo "NEXT_PUBLIC_ADMIN_PASSWORD=Judini#$2026" >> .env.local
 
-# Iniciar servicios
-npm run start:pm2
-
-# Ver estado
-pm2 status
-
-# Ver logs
-pm2 logs
-# o
-npm run logs:pm2
-
-# Reiniciar
-npm run restart:pm2
-
-# Detener
-npm run stop:pm2
-
-# Configurar inicio automático
-pm2 startup systemd
-pm2 save
-```
-
-## Opción 2: Iniciar con Script Bash
-
-```bash
-# En el directorio del proyecto
-cd /home/u669953139/domains/olivedrab-gnu-416802.hostingersite.com/public_html
-
-# Dar permisos al script (primera vez)
-chmod +x start.sh
-
-# Ejecutar
-./start.sh
-
-# El script mantendrá ambos servicios corriendo
-# Presiona Ctrl+C para detener ambos
-```
-
-## Proceso de Build y Deploy Completo
-
-```bash
-# 1. Conectar al VPS via SSH
-ssh u669953139@srv1782.hstgr.io
-
-# 2. Ir al directorio del proyecto
-cd /home/u669953139/domains/olivedrab-gnu-416802.hostingersite.com/public_html
-
-# 3. Obtener últimos cambios (si usas git)
-git pull origin main
-
-# 4. Instalar dependencias
-pnpm install
-
-# 5. Ejecutar builds
+# Build estático
 npm run build
 
-# 6. Ejecutar migraciones de base de datos (si hay cambios)
-npm run db:migrate
-
-# 7. Reiniciar servicios (con PM2)
-npm run restart:pm2
-
-# 8. Verificar logs
-pm2 logs
+# El resultado estará en apps/web/dist/
 ```
 
-## Verificación Post-Deploy
+## Paso 3: Subir a Hostinger (File Manager o FTP)
 
-Verificar que los servicios están corriendo:
+### Opción A: File Manager (más fácil)
+
+1. Accede al panel de Hostinger
+2. Ve a File Manager
+3. Navega a `domains/olivedrab-gnu-416802.hostingersite.com/public_html`
+4. Elimina todo el contenido existente (o muévelo a backup)
+5. Sube el contenido de `apps/web/dist/`:
+   - index.html
+   - login.html
+   - accounts.html
+   - monitor.html
+   - 404.html
+   - Carpeta `_next/`
+   - Carpeta `accounts/`
+
+### Opción B: FTP
+
 ```bash
-# Ver procesos en puertos 3000 y 3001
-netstat -tlnp | grep -E '3000|3001'
+# Usando lftp o FileZilla
+# Host: srv1782.hstgr.io
+# Usuario: u669953139
+# Password: (tu password de FTP)
+# Puerto: 21
 
-# O con ss
-ss -tlnp | grep -E '3000|3001'
+# Directorio remoto: /domains/olivedrab-gnu-416802.hostingersite.com/public_html
+# Directorio local: apps/web/dist/
+```
 
-# Probar API localmente
-curl http://localhost:3001/api/ping
+## Paso 4: Desplegar el Backend (Railway)
 
-# Probar desde fuera
-curl https://olivedrab-gnu-416802.hostingersite.com/api/ping
+Railway ofreere despliegue gratuito con soporte para Node.js:
+
+1. Crea cuenta en https://railway.app
+2. Crea nuevo proyecto → Deploy from GitHub repo
+3. Selecciona tu repo `proxy-netmail`
+4. Configura el root directory como `apps/api`
+5. Añade variables de entorno en Railway Dashboard:
+   - `DATABASE_HOST=srv1782.hstgr.io`
+   - `DATABASE_PORT=3306`
+   - etc.
+6. Railway detectará automáticamente el `package.json` y el `start` script
+
+### Configuración para Railway (package.json)
+
+Asegúrate de que `apps/api/package.json` tenga:
+```json
+{
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc"
+  }
+}
+```
+
+Y crea un `Procfile` en `apps/api/`:
+```
+web: node dist/index.js
+```
+
+O usa `railway.json`:
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "node dist/index.js",
+    "healthcheckPath": "/api/ping"
+  }
+}
+```
+
+## Paso 5: Configurar CORS
+
+Después de obtener la URL del backend (ej: `https://proxy-netmail-api.up.railway.app`), actualiza:
+
+1. **En Railway**: Agrega la variable `CORS_ORIGIN=https://olivedrab-gnu-416802.hostingersite.com`
+
+2. **En tu local**: Actualiza `apps/web/.env.local` con la nueva API URL y haz rebuild
+
+3. **Re-subir** los archivos estáticos a Hostinger
+
+## Estructura de Archivos en Hostinger
+
+```
+/domains/olivedrab-gnu-416802.hostingersite.com/public_html/
+├── index.html                 ← Dashboard
+├── login.html                 ← Login
+├── accounts.html              ← Accounts list
+├── accounts/
+│   └── detail.html            ← Account detail
+├── monitor.html               ← Monitor page
+├── 404.html                   ← 404 page
+├── favicon.ico
+└── _next/                     ← Assets de Next.js
+    ├── static/
+    └── ...
 ```
 
 ## Troubleshooting
 
-### Error: EACCES permission denied
-```bash
-# Cambiar permisos al directorio
-sudo chown -R $USER:$USER /home/u669953139/domains/olivedrab-gnu-416802.hostingersite.com/public_html
-```
+### Error: "Cannot read properties of null (reading 'useContext')"
+Este error ocurre cuando next-auth intenta hidratarse durante el build estático. 
+**Solución**: Ya está implementada - usamos localStorage-based auth en lugar de next-auth.
 
-### Error: Port already in use
-```bash
-# Encontrar proceso usando el puerto
-sudo lsof -i :3001
-# o
-sudo netstat -tlnp | grep 3001
+### Error: "Invalid revalidate value"
+**Solución**: Ya está implementada - eliminamos `export const revalidate` de todas las páginas.
 
-# Matar proceso
-sudo kill -9 <PID>
-```
+### Error: "generateStaticParams() required"
+Las páginas dinámicas como `/accounts/[id]` requieren `generateStaticParams()` para export estático.
+**Solución**: Cambiamos a `/accounts/detail?id=X` (query params en lugar de route params).
 
-### Logs de PM2 no muestran nada
-```bash
-# Limpiar logs antiguos
-pm2 flush
+### Error: "useSearchParams() should be wrapped in Suspense"
+**Solución**: La página de detalle ya usa Suspense alrededor del componente que usa useSearchParams.
 
-# Ver logs en tiempo real
-pm2 logs --lines 100
-```
+### Página 404 en rutas del dashboard
+En hosting estático, el enrutamiento del lado del cliente puede fallar al refrescar.
+**Solución**: Asegúrate de que todas las rutas existan como archivos HTML:
+- `/` → `index.html`
+- `/login` → `login.html` 
+- `/accounts` → `accounts.html`
+- `/accounts/detail` → `accounts/detail.html`
+- `/monitor` → `monitor.html`
 
-### Error de CORS
-Verificar que `CORS_ORIGIN` en `apps/api/.env` coincide exactamente con la URL de acceso (incluyendo https://).
+### API no responde (CORS error)
+Verifica:
+1. La variable `CORS_ORIGIN` en el backend coincide exactamente con la URL del frontend (incluyendo https://)
+2. No hay slash al final de la URL
+3. La URL de la API en el frontend es accesible públicamente
 
-## Estructura de Archivos en Producción
-
-```
-/home/u669953139/domains/olivedrab-gnu-416802.hostingersite.com/public_html/
-├── apps/
-│   ├── api/
-│   │   ├── dist/          ← Build del API
-│   │   ├── .env           ← Variables de entorno API
-│   │   └── ...
-│   └── web/
-│       ├── .next/         ← Build de Next.js
-│       ├── .env.local     ← Variables de entorno Web
-│       └── ...
-├── logs/                  ← Logs de PM2
-│   ├── api-error.log
-│   ├── api-out.log
-│   ├── web-error.log
-│   └── web-out.log
-├── ecosystem.config.js    ← Configuración PM2
-├── start.sh              ← Script de inicio alternativo
-└── ...
-```
-
-## Comandos Útiles de PM2
+## Comandos Útiles para Testing Local
 
 ```bash
-pm2 status              # Ver estado de procesos
-pm2 logs                # Ver logs en tiempo real
-pm2 logs --lines 500    # Ver últimas 500 líneas
-pm2 monit               # Monitor interactivo
-pm2 reload all          # Recargar todos los procesos
-pm2 delete all          # Detener y eliminar todos
-pm2 save                # Guardar configuración
-pm2 resurrect           # Restaurar procesos guardados
+# Servir el build estático localmente
+npx serve apps/web/dist
+
+# O con Python
+python -m http.server 8080 --directory apps/web/dist
+
+# Verificar que la API responde
+curl https://tu-api-en-railway.app/api/ping
 ```
+
+## Actualización del Deploy
+
+Para actualizar el frontend:
+```bash
+# 1. Modificar código
+# 2. Rebuild
+npm run build
+
+# 3. Subir archivos actualizados (solo los que cambiaron)
+# Usando File Manager de Hostinger o FTP
+```
+
+Para actualizar el backend:
+```bash
+# Si usas Railway: git push y Railway redeploya automáticamente
+# Si usas Render: git push y Render redeploya automáticamente
+```
+
+## Alternativas al Backend
+
+Si Railway no es una opción, considera:
+
+1. **Render.com**: Similar a Railway, tiene tier gratuito
+2. **Vercel**: Serverless functions (requiere adaptar el código)
+3. **Cyclic.sh**: Hosting gratuito para Node.js
+4. **Fly.io**: Tiene tier gratuito
+5. **Upgrade a Hostinger VPS**: Te permitiría correr todo en un solo servidor
+
+## Notas sobre Autenticación
+
+Dado que estamos en hosting estático sin servidor Node.js:
+- La autenticación es cliente-side usando localStorage
+- No es segura para datos sensibles (cualquiera puede ver el código)
+- Para producción real, considera agregar autenticación server-side en la API
+- O usa un servicio de autenticación como Auth0, Firebase Auth, etc.
