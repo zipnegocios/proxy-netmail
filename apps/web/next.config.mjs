@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  distDir: 'dist',
+  distDir: '../../.next',
   transpilePackages: ['@proxy-netmail/shared'],
   images: {
     unoptimized: true,
