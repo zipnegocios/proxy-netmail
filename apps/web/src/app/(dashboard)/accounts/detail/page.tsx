@@ -14,7 +14,7 @@ import HealthStatusBadge from '@/components/health/health-status-badge';
 
 function AccountDetailContent() {
   const searchParams = useSearchParams();
-  const accountId = parseInt(searchParams.get('id') || '0', 10);
+  const accountId = parseInt(searchParams?.get('id') || '0', 10);
   
   const [account, setAccount] = useState<Account | null>(null);
   const [ssl, setSsl] = useState<SslCertificate | null>(null);
