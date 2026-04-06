@@ -1,5 +1,8 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 import { useEffect, useState } from 'react';
 import type { HealthSummary, Account } from '@proxy-netmail/shared';
 import { api } from '@/lib/api';

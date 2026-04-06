@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { ReactNode, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const navItems = [
   { href: '/', label: 'Overview' },
@@ -13,29 +14,37 @@ const navItems = [
   { href: '/settings', label: 'Settings' },
 ];
 
+// Marcar esta página como dinámica - no prerender
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setIsClient(true);
     // Check auth
-    const auth = localStorage.getItem('proxy-netmail-auth');
-    if (auth !== 'true') {
-      router.push('/login');
+    if (typeof window !== 'undefined') {
+      const auth = localStorage.getItem('proxy-netmail-auth');
+      if (auth !== 'true') {
+        router.replace('/login');
+      }
     }
   }, [router]);
 
   const handleLogout = () => {
-    localStorage.removeItem('proxy-netmail-auth');
-    router.push('/login');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('proxy-netmail-auth');
+      router.replace('/login');
+    }
   };
 
   // Prevent hydration issues
-  if (!mounted) {
+  if (!isClient) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );

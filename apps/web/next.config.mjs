@@ -5,6 +5,13 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  // Deshabilitar completamente la generación de páginas estáticas
+  staticPageGenerationTimeout: 1,
+  // Evitar que se generen páginas estáticas para errores
+  trailingSlash: true,
+  experimental: {
+    optimizeCss: false,
+  },
 };
 
 export default nextConfig;
