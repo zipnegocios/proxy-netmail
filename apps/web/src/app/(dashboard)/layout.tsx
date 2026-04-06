@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
+import { useAuth } from '@/lib/auth-context';
 
 const navItems = [
   { href: '/', label: 'Overview' },
@@ -16,6 +16,25 @@ const navItems = [
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated, logout } = useAuth();
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
+  // Don't render content until authenticated
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   return (
     <div className="min-h-screen flex">
@@ -50,7 +69,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <Button
             variant="ghost"
             className="w-full text-gray-400 hover:text-white"
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={handleLogout}
           >
             Sign out
           </Button>
