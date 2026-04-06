@@ -1,8 +1,5 @@
 'use client';
 
-// Evitar prerender estático
-export const dynamic = 'force-dynamic';
-
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';

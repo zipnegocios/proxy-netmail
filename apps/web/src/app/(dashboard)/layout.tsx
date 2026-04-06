@@ -1,8 +1,5 @@
 'use client';
 
-// Evitar prerender estático - usa next-auth
-export const dynamic = 'force-dynamic';
-
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';

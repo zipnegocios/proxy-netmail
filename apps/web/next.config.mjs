@@ -2,15 +2,14 @@
 const nextConfig = {
   transpilePackages: ['@proxy-netmail/shared'],
   output: 'standalone',
-  // Deshabilitar prerender estático de páginas que usan next-auth
-  staticPageGenerationTimeout: 0,
-  // Configurar imágenes para standalone
+  // Configurar imágenes
   images: {
     unoptimized: true,
   },
-  // Evitar errores de prerender en páginas dinámicas
-  skipTrailingSlashRedirect: true,
-  skipMiddlewareUrlNormalize: true,
+  // Deshabilitar optimización de fuentes para evitar descargas durante build
+  optimizeFonts: false,
+  // Deshabilitar generación estática
+  staticPageGenerationTimeout: 1,
 };
 
 export default nextConfig;
