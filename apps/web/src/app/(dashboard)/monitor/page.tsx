@@ -1,5 +1,8 @@
 'use client';
 
+// Evitar prerender estático
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import type { HealthSummary, Account } from '@proxy-netmail/shared';
 import { api } from '@/lib/api';
