@@ -3,8 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { ReactNode, useEffect } from 'react';
-import { useAuth } from '@/lib/auth-context';
+import { ReactNode, useEffect, useState } from 'react';
 
 const navItems = [
   { href: '/', label: 'Overview' },
@@ -17,24 +16,30 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, logout } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!isAuthenticated) {
+    setMounted(true);
+    // Check auth
+    const auth = localStorage.getItem('proxy-netmail-auth');
+    if (auth !== 'true') {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
-
-  // Don't render content until authenticated
-  if (!isAuthenticated) {
-    return null;
-  }
+  }, [router]);
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem('proxy-netmail-auth');
     router.push('/login');
   };
+
+  // Prevent hydration issues
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
