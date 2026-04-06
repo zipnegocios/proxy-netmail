@@ -1,10 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@proxy-netmail/shared'],
-  output: 'export',
-  distDir: 'dist',
-  images: {
-    unoptimized: true,
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: 'http://localhost:3001/api/:path*',
+      },
+    ];
   },
 };
 
