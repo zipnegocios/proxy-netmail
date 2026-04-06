@@ -6,7 +6,14 @@
     "dev:api": "pnpm --filter @proxy-netmail/api dev",
     "dev:web": "pnpm --filter @proxy-netmail/web dev",
     "dev": "pnpm run --parallel dev:api dev:web",
-    "build": "pnpm run --filter './apps/*' build",
+    "build": "npm run build:api && npm run build:web",
+    "build:api": "cd apps/api && npx tsc",
+    "build:web": "cd apps/web && npx next build",
+    "start": "bash start.sh",
+    "start:pm2": "pm2 start ecosystem.config.js",
+    "stop:pm2": "pm2 stop ecosystem.config.js",
+    "restart:pm2": "pm2 restart ecosystem.config.js",
+    "logs:pm2": "pm2 logs",
     "db:migrate": "pnpm --filter @proxy-netmail/api db:migrate"
   },
   "engines": {
