@@ -26,7 +26,7 @@ export interface ActivityLogEntry {
   event_type: EventType;
   severity: Severity;
   message: string;
-  metadata: Record<string, unknown> | null;
+  metadata?: Record<string, unknown> | null;
   created_at: string;
 }
 

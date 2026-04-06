@@ -58,7 +58,7 @@ export async function update(
   values.push(id);
   await db.execute<ResultSetHeader>(
     `UPDATE accounts SET ${fields.join(', ')} WHERE id = ?`,
-    values,
+    values as (string | number | null)[],
   );
   return findById(db, id);
 }

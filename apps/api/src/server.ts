@@ -8,6 +8,8 @@ import systemRoutes from './routes/system';
 import setupRoutes from './routes/setup';
 import activityRoutes from './routes/activity';
 import sslRoutes from './routes/ssl';
+import healthRoutes from './routes/health';
+import { startScheduler } from './services/scheduler.service';
 
 const server = Fastify({
   logger: {
@@ -26,6 +28,7 @@ server.register(systemRoutes, { prefix: '/api/system' });
 server.register(setupRoutes, { prefix: '/api/accounts' });
 server.register(activityRoutes, { prefix: '/api/activity' });
 server.register(sslRoutes, { prefix: '/api/ssl' });
+server.register(healthRoutes, { prefix: '/api/health' });
 
 // Health check (no auth)
 server.get('/api/ping', async () => ({
@@ -37,6 +40,7 @@ const start = async () => {
   try {
     await server.listen({ port: config.port, host: '0.0.0.0' });
     console.log(`proxy-netmail API running on port ${config.port}`);
+    startScheduler(server.db);
   } catch (err) {
     server.log.error(err);
     process.exit(1);
